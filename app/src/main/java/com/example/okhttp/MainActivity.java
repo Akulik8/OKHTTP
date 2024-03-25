@@ -1,6 +1,5 @@
 package com.example.okhttp;
 
-import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -10,16 +9,19 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class MainActivity extends AppCompatActivity {
 
     Button getButton;
     OkHttpClient client;
 
-    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,35 +34,37 @@ public class MainActivity extends AppCompatActivity {
                 .url(url)
                 .build();
 
-
         getButton = findViewById(R.id.getButton);
 
         getButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Thread newThread = new Thread() {
+                client.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        // Обработка ошибки
+                        e.printStackTrace();
+                    }
 
                     @Override
-                    public void run() {
-                        try (Response response = client.newCall(request).execute()) {
+                    public void onResponse(Call call, Response response) throws IOException {
+                        try (ResponseBody responseBody = response.body()) {
                             if (!response.isSuccessful()) {
                                 throw new IOException("Запрос к серверу не был успешен: " +
                                         response.code() + " " + response.message());
                             }
-                            // пример получения конкретного заголовка ответа
-                            Log.d("test",response.toString());
+                            // пример получения всех заголовков ответа
+                            Headers responseHeaders = response.headers();
+                            for (int i = 0, size = responseHeaders.size(); i < size; i++) {
+                                // вывод заголовков
+                                Log.d("test",response.toString());
+                            }
                             // вывод тела ответа
-                            Log.d("test",response.body().string());
-                        } catch (IOException e) {
-                            Log.d("test","Ошибка подключения: " + e);
+                            Log.d("test",responseBody.string());
                         }
-
                     }
-                };
-
-                newThread.start();
+                });
             }
         });
-
     }
 }
