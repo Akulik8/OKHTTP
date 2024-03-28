@@ -7,61 +7,50 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.io.IOException;
+import java.util.List;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Headers;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MainActivity extends AppCompatActivity {
 
     Button getButton;
-    OkHttpClient client;
-
+    Retrofit retrofit;
+CountryApi api;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        String url = "https://publicobject.com/helloworld.txt";
-
-        client = new OkHttpClient();
-        Request request = new Request.Builder()
-                .url(url)
+        String url = "https://restcountries.com/v3.1/";
+        retrofit = new Retrofit.Builder()
+                .baseUrl(url)
+                .addConverterFactory(GsonConverterFactory.create())
                 .build();
+        api = retrofit.create(CountryApi.class);
 
         getButton = findViewById(R.id.getButton);
 
         getButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.newCall(request).enqueue(new Callback() {
+                api.getAllCountry().enqueue(new Callback<List<Country>>() {
                     @Override
-                    public void onFailure(Call call, IOException e) {
-                        // Обработка ошибки
-                        e.printStackTrace();
+                    public void onResponse(Call<List<Country>> call, Response<List<Country>> response) {
+                        Log.d("test", "Success");
+                        List<Country> countries = response.body();
+                        for (Country country : countries) {
+                            Log.d("test", "     - " + country.code + " = " + country.name.common);
+                        }
+                       // Log.d("test", response.body().toString());
                     }
 
                     @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        try (ResponseBody responseBody = response.body()) {
-                            if (!response.isSuccessful()) {
-                                throw new IOException("Запрос к серверу не был успешен: " +
-                                        response.code() + " " + response.message());
-                            }
-                            // пример получения всех заголовков ответа
-                            Headers responseHeaders = response.headers();
-                            for (int i = 0, size = responseHeaders.size(); i < size; i++) {
-                                // вывод заголовков
-                                Log.d("test",response.toString());
-                            }
-                            // вывод тела ответа
-                            Log.d("test",responseBody.string());
-                        }
+                    public void onFailure(Call<List<Country>> call, Throwable throwable) {
+                        Log.d("test", "ERROR");
                     }
                 });
             }
